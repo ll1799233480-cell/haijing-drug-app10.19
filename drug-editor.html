@@ -1,0 +1,249 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>药品添加工具</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, sans-serif; background: #f0f4f8; padding: 16px; color: #1a202c; }
+.container { max-width: 600px; margin: 0 auto; }
+h1 { font-size: 22px; margin-bottom: 4px; }
+.subtitle { color: #718096; font-size: 14px; margin-bottom: 20px; }
+.card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #4a5568; }
+input, textarea, select { width: 100%; padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; margin-bottom: 12px; transition: border-color 0.2s; }
+input:focus, textarea:focus { outline: none; border-color: #4299e1; box-shadow: 0 0 0 3px rgba(66,153,225,0.15); }
+textarea { resize: vertical; min-height: 60px; }
+.optional { font-size: 12px; color: #a0aec0; font-weight: 400; }
+.section-title { font-size: 15px; font-weight: 700; margin-bottom: 10px; color: #2b6cb0; display: flex; align-items: center; gap: 6px; }
+.section-hint { font-size: 12px; color: #718096; margin-bottom: 10px; padding: 8px; background: #f7fafc; border-radius: 6px; }
+.btn { width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: 8px; }
+.btn-primary { background: #4299e1; color: white; }
+.btn-primary:hover { background: #3182ce; }
+.btn-secondary { background: #edf2f7; color: #4a5568; }
+.btn-secondary:hover { background: #e2e8f0; }
+.btn-success { background: #48bb78; color: white; }
+.btn-success:hover { background: #38a169; }
+.output-area { display: none; }
+.output-area.show { display: block; }
+pre { background: #1a202c; color: #a0aec0; padding: 16px; border-radius: 8px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow-y: auto; }
+.copy-btn { background: #48bb78; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; margin-top: 8px; }
+.copy-btn:hover { background: #38a169; }
+.steps { counter-reset: step; padding: 0; list-style: none; }
+.steps li { counter-increment: step; padding: 10px 12px; margin-bottom: 6px; background: #f7fafc; border-radius: 8px; font-size: 14px; border-left: 3px solid #4299e1; }
+.steps li::before { content: "第" counter(step) "步："; font-weight: 700; color: #2b6cb0; }
+.toggle-section { color: #4299e1; cursor: pointer; font-size: 13px; user-select: none; }
+.toggle-section:hover { text-decoration: underline; }
+.faq-item { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+.faq-item textarea { min-height: 40px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>💊 药品添加工具</h1>
+  <p class="subtitle">填好信息后自动生成代码，复制粘贴到 drugs.json 即可</p>
+
+  <ol class="steps">
+    <li>在下方填写新药品信息</li>
+    <li>点击"生成药品数据"</li>
+    <li>全选并复制生成的代码</li>
+    <li>用记事本打开 drugs.json，粘贴到最后一个药品的 <code>}</code> 之后、<code>]</code> 之前</li>
+    <li>别忘记在粘贴的内容前面加一个 <code>,</code>（逗号）</li>
+  </ol>
+
+  <div class="card">
+    <div class="section-title">📋 基本信息</div>
+    <label>药品商品名 <span class="optional">（如：格华止、拜阿司匹灵）</span></label>
+    <input id="drugName" placeholder="例：舒普深">
+    <label>通用名 <span class="optional">（如：二甲双胍）</span></label>
+    <input id="genericName" placeholder="例：头孢哌酮舒巴坦">
+    <label>英文名</label>
+    <input id="enName" placeholder="例：Cefoperazone and Sulbactam">
+    <label>分类 <span class="optional">（可写新的，或选已有的）</span></label>
+    <select id="category">
+      <option value="">输入新分类或选择已有</option>
+      <option>抗血小板药</option>
+      <option>质子泵抑制剂</option>
+      <option>口服降糖药</option>
+      <option>抗生素</option>
+      <option>降压药</option>
+      <option>降脂药</option>
+      <option>抗肿瘤药</option>
+      <option>生物制剂</option>
+    </select>
+    <input id="categoryCustom" placeholder="或者在这里输入自定义分类">
+    <label>生产企业</label>
+    <input id="manufacturer" placeholder="例：辉瑞制药有限公司">
+    <label>规格</label>
+    <input id="specification" placeholder="例：1.5g×10瓶/盒">
+    <label>批准文号</label>
+    <input id="approvalNumber" placeholder="例：国药准字H20020541">
+    <label>医保类型</label>
+    <select id="drugCode">
+      <option>医保甲类</option>
+      <option selected>医保乙类</option>
+      <option>医保丙类</option>
+      <option>自费</option>
+    </select>
+    <label>一句话简介</label>
+    <textarea id="summary" placeholder="例：新一代超广谱抗生素，对多重耐药菌具有较强抗菌活性" rows="2"></textarea>
+  </div>
+
+  <div class="card">
+    <div class="section-title">📋 说明书内容</div>
+    <div class="section-hint">以下可填可不填，只填你有的信息即可</div>
+
+    <label>适应症</label>
+    <textarea id="indications" placeholder="适应症内容..." rows="3"></textarea>
+    <label>用法用量</label>
+    <textarea id="dosage" placeholder="用法用量内容..." rows="3"></textarea>
+    <label>禁忌</label>
+    <textarea id="contraindications" placeholder="禁忌内容..." rows="2"></textarea>
+    <label>不良反应</label>
+    <textarea id="adverse_reactions" placeholder="不良反应内容..." rows="3"></textarea>
+    <label>注意事项</label>
+    <textarea id="warnings" placeholder="注意事项内容..." rows="3"></textarea>
+    <label>药物相互作用</label>
+    <textarea id="drug_interactions" placeholder="药物相互作用..." rows="2"></textarea>
+    <label>药理作用</label>
+    <textarea id="pharmacology" placeholder="药理作用..." rows="3"></textarea>
+    <label>贮藏</label>
+    <input id="storage" placeholder="例：密封，25℃以下干燥处保存">
+    <label>包装</label>
+    <input id="packaging" placeholder="例：铝塑包装，10片/盒">
+    <label>有效期</label>
+    <input id="shelf_life" placeholder="例：24个月">
+  </div>
+
+  <div class="card" id="faqSection">
+    <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+      <span>❓ 常见FAQ</span>
+      <span class="toggle-section" onclick="addFaq()">+ 添加一条FAQ</span>
+    </div>
+    <div id="faqList"></div>
+    <div class="section-hint">点击上方"添加一条FAQ"来增加常见问题</div>
+  </div>
+
+  <button class="btn btn-primary" onclick="generate()">🔨 生成药品数据</button>
+  <button class="btn btn-secondary" onclick="clearAll()">清空所有内容</button>
+
+  <div class="card output-area" id="outputArea">
+    <div class="section-title">✅ 生成成功！</div>
+    <p style="font-size:13px;color:#718096;margin-bottom:8px;">复制下面的代码，用记事本打开 drugs.json，在最后一个药品的 <code>}</code> 后面粘贴（记得前面加逗号）</p>
+    <pre id="outputJson"></pre>
+    <button class="copy-btn" onclick="copyJson()">📋 复制代码</button>
+    <p id="copyMsg" style="font-size:13px;color:#48bb78;margin-top:6px;display:none;">✅ 已复制！</p>
+  </div>
+</div>
+
+<script>
+let faqCount = 0;
+
+function addFaq(q, a) {
+  faqCount++;
+  const div = document.createElement("div");
+  div.className = "faq-item";
+  div.id = "faq-" + faqCount;
+  div.innerHTML = `
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+      <span style="font-size:12px;font-weight:600;">问题 ${faqCount}</span>
+      <span style="font-size:12px;color:#e53e3e;cursor:pointer;" onclick="this.parentElement.parentElement.remove()">删除</span>
+    </div>
+    <input id="faq-q-${faqCount}" placeholder="问题" value="${q || ''}">
+    <textarea id="faq-a-${faqCount}" placeholder="回答" rows="2">${a || ''}</textarea>
+  `;
+  document.getElementById("faqList").appendChild(div);
+}
+
+function getVal(id) { return document.getElementById(id).value.trim(); }
+
+function generate() {
+  const cat = getVal("categoryCustom") || getVal("category") || "其他";
+  const id = (getVal("drugName") || "new-drug").replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, "-").toLowerCase();
+
+  const sections = {};
+
+  // Prescribing info
+  const prescribingFields = [
+    ["indications", "适应症"], ["dosage", "用法用量"], ["contraindications", "禁忌"],
+    ["adverse_reactions", "不良反应"], ["warnings", "注意事项"], ["drug_interactions", "药物相互作用"],
+    ["pharmacology", "药理作用"], ["storage", "贮藏"], ["packaging", "包装"], ["shelf_life", "有效期"]
+  ];
+  const piContent = {};
+  let hasPrescribing = false;
+  prescribingFields.forEach(([fid, title]) => {
+    const v = getVal(fid);
+    if (v) { piContent[fid] = { title, body: v }; hasPrescribing = true; }
+  });
+  if (hasPrescribing) {
+    sections.prescribing_info = { title: "说明书", icon: "📋", content: piContent };
+  }
+
+  // FAQ
+  const faqContent = {};
+  let hasFaq = false;
+  for (let i = 1; i <= faqCount; i++) {
+    const q = document.getElementById("faq-q-" + i);
+    const a = document.getElementById("faq-a-" + i);
+    if (q && a && q.value.trim() && a.value.trim()) {
+      faqContent["faq_" + i] = { question: q.value.trim(), answer: a.value.trim() };
+      hasFaq = true;
+    }
+  }
+  if (hasFaq) {
+    sections.faq = { title: "常见FAQ", icon: "❓", content: faqContent };
+  }
+
+  const drug = {
+    id: id || "new-drug",
+    name: getVal("drugName") || "新药品",
+    genericName: getVal("genericName") || "",
+    enName: getVal("enName") || "",
+    category: cat,
+    manufacturer: getVal("manufacturer") || "",
+    specification: getVal("specification") || "",
+    approvalNumber: getVal("approvalNumber") || "",
+    drugCode: getVal("drugCode") || "医保乙类",
+    summary: getVal("summary") || "",
+    sections: sections
+  };
+
+  // If only prescribing and FAQ are empty, add minimal content
+  if (Object.keys(sections).length === 0) {
+    drug.sections = {
+      prescribing_info: { title: "说明书", icon: "📋", content: { basic: { title: "基本信息", body: getVal("summary") || "暂无数据" } } }
+    };
+  }
+
+  const json = JSON.stringify(drug, null, 2);
+  document.getElementById("outputJson").textContent = json;
+  document.getElementById("outputArea").classList.add("show");
+  document.getElementById("outputArea").scrollIntoView({ behavior: "smooth" });
+}
+
+function copyJson() {
+  const text = document.getElementById("outputJson").textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    document.getElementById("copyMsg").style.display = "block";
+    setTimeout(() => { document.getElementById("copyMsg").style.display = "none"; }, 2000);
+  }).catch(() => {
+    const range = document.createRange();
+    range.selectNode(document.getElementById("outputJson"));
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    document.execCommand("copy");
+    document.getElementById("copyMsg").style.display = "block";
+    setTimeout(() => { document.getElementById("copyMsg").style.display = "none"; }, 2000);
+  });
+}
+
+function clearAll() {
+  document.querySelectorAll("input, textarea").forEach(el => el.value = "");
+  document.getElementById("faqList").innerHTML = "";
+  faqCount = 0;
+  document.getElementById("outputArea").classList.remove("show");
+}
+</script>
+</body>
+</html>

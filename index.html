@@ -1,0 +1,425 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#2563EB">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="description" content="药品信息查询平台 - 医药代表专业工具">
+  <title>海鲸药品信息查询</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/style.css?v=6">
+  <style>[v-cloak]{display:none!important}</style>
+  <script src="js/vue.global.prod.js"></script>
+  <script src="js/fuse.basic.min.js"></script>
+<script>
+// Clear any old service workers and caches on page load
+(function() {
+  if ('serviceWorker' in navigator) {
+    // Unregister any existing service worker first
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+      for (var i = 0; i < registrations.length; i++) {
+        registrations[i].unregister();
+      }
+    });
+    // Clear all caches
+    if ('caches' in window) {
+      caches.keys().then(function(names) {
+        for (var i = 0; i < names.length; i++) {
+          caches.delete(names[i]);
+        }
+      });
+    }
+    // Re-register the new service worker
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('sw.js');
+    });
+  }
+})();
+</script>
+</head>
+<body>
+  <div id="app" v-cloak>
+    <header class="app-header" :class="{ 'with-shadow': hasScroll }">
+      <div class="header-inner">
+        <button v-if="currentRoute !== 'home'" class="btn-icon" @click="goBack">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+<h1 class="header-title">{{ pageTitle }}</h1>
+
+      </div>
+    </header>
+
+
+        <main class="main-content">
+      <div v-if="currentRoute === 'home'" class="page-home">
+        <section class="section">
+          <h2 class="section-title">AI功能</h2>
+          <div class="category-grid">
+            <div class="category-card" @click="toggleChat">
+              <span class="category-icon">🤖</span>
+              <span class="category-name">AI问答助手</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2 class="section-title">药品分类</h2>
+          <div class="category-grid">
+            <template v-for="cat in categories" :key="cat.name">
+              <div class="category-card" v-if="cat.name !== '学术文献'" @click="filterByCategory(cat.name)">
+                <span class="category-icon">{{ cat.icon }}</span>
+                <span class="category-name">{{ cat.name }}</span>
+              </div>
+            </template>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2 class="section-title">搜索</h2>
+          <div class="category-grid">
+            <div class="category-card" @click="toggleSearch">
+              <span class="category-icon">🔍</span>
+              <span class="category-name">文献指南搜索</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" v-if="drugItems.length > 0">
+          <h2 class="section-title">{{ activeCategory === '全部' ? '全部药品' : activeCategory }}</h2>
+          <div class="drug-list">
+            <div class="drug-card" v-for="drug in drugItems" :key="drug.id" @click="viewDrug(drug.id)">
+              <div class="drug-card-header">
+                <span class="drug-card-manufacturer">{{ drug.manufacturer }}</span>
+                <span class="drug-card-tag">{{ drug.category }}</span>
+              </div>
+              <h3 class="drug-card-name">{{ drug.name }}</h3>
+              <p class="drug-card-generic">{{ drug.genericName }} / {{ drug.enName }}</p>
+              <div class="drug-card-info">
+                <span>{{ drug.specification }}</span>
+                <span class="dot">·</span>
+                <span>{{ drug.drugCode }}</span>
+              </div>
+              <p class="drug-card-summary">{{ drug.summary }}</p>
+              <div class="drug-card-footer">
+                <span class="drug-card-sections">
+                  <span v-for="(sec, key) in drug.sections" :key="key" class="section-badge">{{ sec.icon }}</span>
+                </span>
+                <span class="drug-card-arrow">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" v-if="academicItems.length > 0">
+          <h2 class="section-title">学术文献</h2>
+          <div class="drug-list">
+            <div class="drug-card" v-for="drug in academicItems" :key="drug.id" @click="viewDrug(drug.id)">
+              <div class="drug-card-header">
+                <span class="drug-card-manufacturer">{{ drug.manufacturer }}</span>
+                <span class="drug-card-tag">{{ drug.category }}</span>
+              </div>
+              <h3 class="drug-card-name">{{ drug.name }}</h3>
+              <p class="drug-card-generic">{{ drug.genericName }} / {{ drug.enName }}</p>
+              <div class="drug-card-info">
+                <span>{{ drug.specification }}</span>
+                <span class="dot">·</span>
+                <span>{{ drug.drugCode }}</span>
+              </div>
+              <p class="drug-card-summary">{{ drug.summary }}</p>
+              <div class="drug-card-footer">
+                <span class="drug-card-sections">
+                  <span v-for="(sec, key) in drug.sections" :key="key" class="section-badge">{{ sec.icon }}</span>
+                </span>
+                <span class="drug-card-arrow">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div v-if="currentRoute === 'section-menu'" class="page-section-menu">
+        <div class="section-menu-grid">
+          <div class="sm-card" v-for="(section, key) in currentDrug.sections" :key="key" @click="goToSection(key)">
+            <div class="sm-card-icon">{{ section.icon }}</div>
+            <div class="sm-card-title">{{ section.title }}</div>
+          </div>
+        </div>
+        <div class="section-menu-empty" v-if="currentDrug && Object.keys(currentDrug.sections).length === 0">
+          <p>该药品暂无详细资料</p>
+        </div>
+      </div>
+
+
+
+      <div v-if="currentRoute === 'guideline'" class="page-guideline">
+        <div class="guideline-header">
+          <h2>诊疗指南</h2>
+          <p class="guideline-count">共 {{ filteredGuidelineFiles.length }} 篇文献</p>
+        </div>
+        <div class="guideline-categories">
+          <button v-for="cat in guidelineCategories" :key="cat" class="gc-btn" :class="{ active: guidelineCategory === cat }" @click="guidelineCategory = cat">{{ cat }}</button>
+        </div>
+        <div class="guideline-list">
+          <div v-for="(file, idx) in filteredGuidelineFiles" :key="idx" class="gl-item">
+            <div class="gl-item-icon">📄</div>
+            <div class="gl-item-info" @click="downloadFile(file.path, file.name)">
+              <div class="gl-item-name">{{ file.name }}</div>
+              <div class="gl-item-path">{{ file.category }}</div>
+            </div>
+            <div class="gl-item-download" @click="downloadFile(file.path, file.name)" title="下载">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="currentRoute === 'detail'" class="page-detail">
+        <div class="detail-hero">
+          <div class="detail-hero-info">
+            <h2 class="detail-drug-name">{{ currentDrug.name }}</h2>
+            <p class="detail-drug-sub">{{ currentDrug.genericName }} / {{ currentDrug.enName }}</p>
+            <div class="detail-tags">
+              <span class="detail-tag detail-tag-blue">{{ currentDrug.category }}</span>
+              <span class="detail-tag detail-tag-green">{{ currentDrug.drugCode }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Download Button for documents -->
+        <div class="detail-download" v-if="currentDrug.fileUrl && currentDrug.category === '学术文献'">
+          <div class="detail-dl-actions">
+            <a class="download-btn" @click.prevent="downloadFile(currentDrug.fileUrl, currentDrug.name)" href="#" style="background:var(--color-primary);color:#fff;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              下载文件
+            </a>
+          </div>
+        </div>
+
+        
+
+        <div class="detail-content" @click="onContentClick">
+          <div v-if="currentSectionObj" class="content-body">
+            <!-- QA Category List View -->
+            <template v-if="activeSection === 'qa' && !selectedQACategory && typeof currentSectionObj.content === 'object'">
+              <!-- If QA content has file_list key, show file list directly (no category selection) -->
+              <template v-if="currentSectionObj.content.file_list">
+                <div class="content-block">
+                  <div class="content-block-body" v-html="fixContentLinks(currentSectionObj.content.file_list.body)"></div>
+                </div>
+              </template>
+              <!-- Otherwise show category list for selection -->
+              <template v-else>
+                <div class="qa-category-list">
+                  <div class="qa-category-card" v-for="(block, bKey) in currentSectionObj.content" :key="bKey" @click="selectQACategory(bKey)">
+                    <span class="qa-category-icon">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </span>
+                    <span class="qa-category-name">{{ block.title }}</span>
+                    <svg class="qa-category-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                  </div>
+                </div>
+              </template>
+            </template>
+            <!-- QA Sub-Category Content View -->
+            <template v-else-if="activeSection === 'qa' && selectedQACategory && currentSectionObj.content">
+              <template v-if="currentSectionObj.content[selectedQACategory]">
+                <div class="content-block">
+                  <div class="qa-back-bar">
+                    <button class="btn-icon-small" @click="clearQACategory">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                    </button>
+                    <h3 class="content-block-title" style="margin:0;">{{ currentSectionObj.content[selectedQACategory].title }}</h3>
+                  </div>
+                  <div class="content-block-body" v-html="currentSectionObj.content[selectedQACategory].body"></div>
+                </div>
+              </template>
+              <div v-else class="content-block">
+                <div class="content-block-body">内容加载中...</div>
+              </div>
+            </template>
+            <!-- Promotion Dept File List (HTML format) -->
+            <template v-else-if="activeSection === 'promotion_dept' && typeof currentSectionObj.content === 'object'">
+              <div class="content-block" v-for="(block, bKey) in currentSectionObj.content" :key="bKey">
+                <h3 class="content-block-title">{{ block.title }}</h3>
+                <div class="content-block-body"><div v-if="block.body.indexOf('guideline-header') >= 0" v-html="fixContentLinks(block.body)"></div><div v-else v-html="renderMarkdown(block.body)"></div></div>
+              </div>
+            </template>
+            <!-- Normal Object Content (non-QA) -->
+            <template v-else-if="typeof currentSectionObj.content === 'object'">
+              <div class="content-block" v-for="(block, bKey) in currentSectionObj.content" :key="bKey">
+                <h3 class="content-block-title">{{ block.title }}</h3>
+                <div class="content-block-body" v-html="renderMarkdown(block.body)"></div>
+              </div>
+            </template>
+            <!-- String Content -->
+            <div v-else class="content-block">
+              <div class="content-block-body" v-html="renderMarkdown(currentSectionObj.content)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+          <div v-if="currentRoute === &apos;search&apos;" class="page-search">
+        <div class="ps-header">
+          <div class="ps-search-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="ps-search-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input v-model="searchQuery" class="ps-input" placeholder="搜索文献资料" @input="searchGuidelines" @keyup.enter="searchGuidelines" ref="searchInput">
+            <button v-if="searchQuery" class="ps-clear-btn" @click="searchQuery=&apos;&apos;;searchResults=[]">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+          <button class="ps-close-btn" @click="closeSearchDialog">取消</button>
+        </div>
+        <div class="ps-body">
+          <!-- 未输入时的引导 -->
+          <div v-if="!searchQuery" class="ps-hint">
+            <div class="ps-hint-icon">🔍</div>
+            <div class="ps-hint-text">输入关键词，搜索诊疗指南与学术文献</div>
+            <div class="ps-hint-sub">支持按文件名、分类搜索</div>
+            <div class="ps-hint-tags">
+              <button class="ps-tag" v-for="kw in searchSuggestions" :key="kw" @click="applySuggestion(kw)">{{ kw }}</button>
+            </div>
+          </div>
+
+          <template v-else>
+            <div v-if="searchResults.length" class="ps-count">共 <b>{{ searchResults.length }}</b> 篇</div>
+
+            <div v-for="(item, idx) in searchResults" :key="idx" class="ps-result-item">
+              <div class="ps-result-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+              </div>
+              <div class="ps-result-info" @click="downloadFile(item.path || item.filePath || item.url, item.name)">
+                <div class="ps-result-name" v-html="highlightName(item.name, searchQuery)"></div>
+                <div class="ps-result-cat">{{ item.category }}</div>
+              </div>
+              <div class="ps-result-actions">
+                <span class="ps-result-action" @click.stop="downloadFile(item.path || item.filePath || item.url, item.name)" title="下载">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                </span>
+              </div>
+            </div>
+
+            <div v-if="!searchResults.length" class="ps-hint">
+              <div class="ps-hint-icon">🗂️</div>
+              <div class="ps-hint-text">没有找到与「{{ searchQuery }}」相关的文献</div>
+              <div class="ps-hint-sub">换个关键词试试，或到产品页里浏览「诊疗指南」</div>
+            </div>
+          </template>
+        </div>
+          </div>
+      <div v-if="currentRoute === 'preview'" class="page-preview">
+        <div class="pv-toolbar">
+          <button class="pv-back-btn" @click="goBack">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <div class="pv-title">{{ previewFile.name || "文件预览" }}</div>
+          <a class="pv-download-btn" :href="previewFile.url" download target="_blank" rel="noopener" title="下载">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          </a>
+        </div>
+        <div class="pv-body">
+          <div v-if="!previewFile.blobUrl" class="pv-loading">
+            <div class="pv-loading-spinner"></div>
+            <div class="pv-loading-text">正在加载文件...</div>
+          </div>
+          <iframe class="pv-iframe" :src="previewFile.blobUrl || previewFile.url" frameborder="0" :class="{ 'pv-hidden': !previewFile.blobUrl }"></iframe>
+          <button class="pv-fullscreen-btn" @click="toggleFullscreen" title="全屏预览">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+          </button>
+        </div>
+      </div>
+    </main>
+
+
+
+    
+    <!-- AI Chat Page -->
+    <div v-if="currentRoute === 'chat'" class="page-chat">
+      <!-- API Key 设置条 -->
+      <div class="chat-api-bar" v-if="!apiKeySet">
+        <input v-model="apiKeyInput" type="password" class="chat-api-input" placeholder="输入你的 DeepSeek API Key..." />
+        <button class="chat-api-btn" @click="saveApiKey">确认</button>
+        
+      </div>
+      <div class="chat-api-info" v-if="apiKeySet">
+        <span class="chat-api-dot"></span> API 已连接
+        <span class="chat-api-change" @click="changeApiKey">更换</span>
+      </div>
+
+      <div class="chat-messages" ref="chatContainer">
+        <div v-for="(msg, i) in chatMessages" :key="i" class="chat-msg" :class="'chat-' + msg.role">
+          <div class="chat-bubble">
+            <div class="chat-text" v-html="renderMarkdown(msg.text)"></div>
+            <div class="chat-time">{{ msg.time }}</div>
+          </div>
+        </div>
+        <div v-if="isThinking" class="chat-msg chat-assistant">
+          <div class="chat-bubble chat-thinking-bubble">
+            <div class="chat-thinking-text">正在思考中</div>
+            <div class="chat-thinking-dots"><span>.</span><span>.</span><span>.</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-input-bar">
+        <input v-model="chatInput" type="text" class="chat-input" placeholder="输入你的问题..." @keyup.enter="sendMessage" :disabled="isThinking || !apiKeySet" />
+        <button class="chat-mic-btn" @click="startVoice" :class="{ recording: isRecording }" :disabled="isThinking || !apiKeySet" title="语音输入">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3" ry="3"></rect><path d="M5 10a7 7 0 0 0 14 0"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+        </button>
+        <button class="chat-send-btn" @click="sendMessage" :disabled="isThinking || !chatInput.trim() || !apiKeySet">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </div>
+    </div>
+
+
+    <!-- Drug Selector Overlay -->
+    <transition name="fade">
+      <div class="drug-selector-overlay" v-if="showDrugSelector" @click.self="showDrugSelector = false">
+        <div class="drug-selector-dialog">
+          <h3 class="selector-title">请选择规格</h3>
+          <p class="selector-subtitle">{{ selectedDrugName }}</p>
+          <div class="selector-option" @click="selectDrugSub('vitamin-d2-400')">
+            <span class="selector-option-icon">💊</span>
+            <div class="selector-option-text">
+              <span class="selector-option-name">维生素D₂软胶囊</span>
+              <span class="selector-option-spec">400单位</span>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </div>
+          <div class="selector-option" @click="selectDrugSub('vitamin-d2')">
+            <span class="selector-option-icon">💊</span>
+            <div class="selector-option-text">
+              <span class="selector-option-name">维生素D₂软胶囊</span>
+              <span class="selector-option-spec">5000单位</span>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </div>
+          <button class="selector-cancel" @click="showDrugSelector = false">取消</button>
+        </div>
+      </div>
+    </transition>
+
+    <transition name="fade">
+      <div class="toast" v-if="toast.show">{{ toast.message }}</div>
+    </transition>
+    <div class="bottom-safe"></div>
+  </div>
+
+    <script src="https://haijing-ai-app.oss-cn-hangzhou.aliyuncs.com/data/data.js?v=20261019-4"></script>
+  <script src="js/app.js?v=6"></script>
+</body>
+</html>
+
+
