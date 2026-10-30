@@ -71,7 +71,7 @@ function getCategoryIcon(category) {
     "内分泌系统": "⚖️",
     "鲑降钙素": "🐟",
     "学术文献": "📖",
-    "班布特罗": "💊"
+    "班布特罗": "🧪"
   };
   for (const [key, icon] of Object.entries(iconMap)) {
     if (category.includes(key)) return icon;
