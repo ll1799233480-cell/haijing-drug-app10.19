@@ -493,7 +493,7 @@ const App = {
       }
       const section = drug.sections[key];
       const contentKeys = Object.keys(section.content || {});
-      if (contentKeys.length === 0) {
+      if (contentKeys.length === 0 && !section.file) {
         showToast("栏目内容待添加", 2000);
         return;
       }

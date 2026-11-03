@@ -256,6 +256,27 @@
                 <div class="content-block-body"><div v-if="block.body.indexOf('guideline-header') >= 0" v-html="fixContentLinks(block.body)"></div><div v-else v-html="renderMarkdown(block.body)"></div></div>
               </div>
             </template>
+            <!-- Manual PDF View -->
+            <template v-else-if="activeSection === 'manual' && currentSectionObj.file">
+              <div class="content-block">
+                <div class="guideline-list">
+                  <a class="gl-item" href="#" @click.prevent="openFile(currentSectionObj.file.path, currentSectionObj.file.name)">
+                    <div class="gl-item-icon">📄</div>
+                    <div class="gl-item-info">
+                      <div class="gl-item-name">{{ currentSectionObj.file.name }}</div>
+                      <div class="gl-item-path">点击在线查看</div>
+                    </div>
+                    <div class="gl-item-download" title="下载" @click.prevent.stop="downloadFile(currentSectionObj.file.path, currentSectionObj.file.name)">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                      </svg>
+                    </div>
+                  </a>
+                </div>
+              </div>
+            </template>
             <!-- Normal Object Content (non-QA) -->
             <template v-else-if="typeof currentSectionObj.content === 'object'">
               <div class="content-block" v-for="(block, bKey) in currentSectionObj.content" :key="bKey">
@@ -417,8 +438,8 @@
     <div class="bottom-safe"></div>
   </div>
 
-    <script src="https://haijing-ai-app.oss-cn-hangzhou.aliyuncs.com/data/data.js?v=20261019-4"></script>
-  <script src="js/app.js?v=8"></script>
+    <script src="https://haijing-ai-app.oss-cn-hangzhou.aliyuncs.com/data/data.js?v=20261103-3"></script>
+  <script src="js/app.js?v=9"></script>
 </body>
 </html>
 

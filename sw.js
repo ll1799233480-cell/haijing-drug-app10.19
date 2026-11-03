@@ -2,7 +2,7 @@
 // 药品信息查询 App - Service Worker
 // ============================================
 
-const CACHE_NAME = "drug-app-v6";
+const CACHE_NAME = "drug-app-v7";
 const ASSETS_TO_CACHE = [
   ".",
   "css/style.css",
