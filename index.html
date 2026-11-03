@@ -250,14 +250,14 @@
               </div>
             </template>
             <!-- Promotion Dept File List (HTML format) -->
-            <template v-else-if="activeSection === 'promotion_dept' && typeof currentSectionObj.content === 'object'">
+            <template v-else-if="activeSection === 'promotion_dept' && !currentSectionObj.file && typeof currentSectionObj.content === 'object'">
               <div class="content-block" v-for="(block, bKey) in currentSectionObj.content" :key="bKey">
                 <h3 class="content-block-title">{{ block.title }}</h3>
                 <div class="content-block-body"><div v-if="block.body.indexOf('guideline-header') >= 0" v-html="fixContentLinks(block.body)"></div><div v-else v-html="renderMarkdown(block.body)"></div></div>
               </div>
             </template>
-            <!-- Manual PDF View -->
-            <template v-else-if="activeSection === 'manual' && currentSectionObj.file">
+            <!-- File-based Section View -->
+            <template v-else-if="(activeSection === 'manual' || activeSection === 'promotion_dept') && currentSectionObj.file">
               <div class="content-block">
                 <div class="guideline-list">
                   <a class="gl-item" href="#" @click.prevent="openFile(currentSectionObj.file.path, currentSectionObj.file.name)">
@@ -438,7 +438,7 @@
     <div class="bottom-safe"></div>
   </div>
 
-    <script src="https://haijing-ai-app.oss-cn-hangzhou.aliyuncs.com/data/data.js?v=20261103-4"></script>
+    <script src="https://haijing-ai-app.oss-cn-hangzhou.aliyuncs.com/data/data.js?v=20261103-8"></script>
   <script src="js/app.js?v=9"></script>
 </body>
 </html>
